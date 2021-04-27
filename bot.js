@@ -6,9 +6,10 @@ require("dotenv").config();
 require("./db/mongoose");
 const User = require("./models/user");
 const fs = require("fs");
+const cron = require("node-cron");
 
 const dataBuffer = fs.readFileSync("ethTokens.json");
-
+const change = 0.000001;
 let supportedPools;
 
 const readPools = () => {
@@ -110,7 +111,7 @@ axios
           const coin = user.coins.filter((coin) => coin === address);
           if (coin.length === 0) {
             user.coins.push(address);
-            user.save();
+            await user.save();
             bot.sendMessage(id, "Coin added! You track this coin.");
           } else {
             bot.sendMessage(id, "You track this coin.");
@@ -121,11 +122,29 @@ axios
       }
     });
 
+    bot.onText(/\/rmPool (.+)/, async (msg, [source, address]) => {
+      const id = msg.chat.id;
+      const user = await User.findOne({ tg_chat_id: id });
+
+      if (!user) {
+        bot.sendMessage(id, "Who are you? Send /start command!");
+      } else {
+        const poolForDeleteIndex = user.pools.findIndex((el) => el === address);
+        if (poolForDeleteIndex === -1) {
+          bot.sendMessage(id, "you don't have such pool");
+        } else {
+          user.pools.splice(poolForDeleteIndex, 1);
+          user.save();
+          bot.sendMessage(id, "pool removed!");
+        }
+      }
+    });
+
     bot.onText(/\/addPool (.+)/, async (msg, [source, address]) => {
       const id = msg.chat.id;
 
       const addressTemplate = /^0x[a-fA-F0-9]{40}$/;
-      const pools = supportedPools
+      const pools = supportedPools;
 
       if (addressTemplate.test(address)) {
         if (pools.includes(address)) {
@@ -357,104 +376,112 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
       }
     };
 
-    const checkPoolsLiquidities = () => {
-      setInterval(async () => {
-        const freshPools = await axios.get(
-          `https://data-api.defipulse.com/api/v1/blocklytics/pools/v1/exchanges?api-key=${poolsApiKey}`
+    cron.schedule("20 * * * * *", async () => {
+      const freshPools = await axios.get(
+        `https://data-api.defipulse.com/api/v1/blocklytics/pools/v1/exchanges?api-key=${poolsApiKey}`
+      );
+      let users = await User.find();
+
+      supportedPools.forEach((pool) => {
+        let freshPool = freshPools.data.results.find(
+          ({ exchange }) => exchange === pool
         );
-        let users = await User.find();
+        let oldPool = oldPools.data.results.find(
+          ({ exchange }) => exchange === pool
+        );
 
-        supportedPools.forEach((pool) => {
-          let freshPool = freshPools.data.results.find(
-            ({ exchange }) => exchange === pool
-          );
-          let oldPool = oldPools.data.results.find(
-            ({ exchange }) => exchange === pool
-          );
-
-          const filteredUsers = users.filter(({ pools }) => {
-            return pools.includes(pool);
-          });
-
-          if (
-            Math.abs(freshPool.usdLiquidity - oldPool.usdLiquidity) /
-              oldPool.usdLiquidity >=
-            0.05
-          ) {
-            //
-            if (freshPool.usdLiquidity - oldPool.usdLiquidity > 0) {
-              filteredUsers.forEach(({ tg_chat_id }) => {
-                bot.sendMessage(
-                  tg_chat_id,
-                  `🚀🚀Liquifity for ${freshPool.poolName} is ${freshPool.usdLiquidity} 🚀🚀`
-                );
-              });
-            }
-            if (freshPool.usdLiquidity - oldPool.usdLiquidity < 0) {
-              filteredUsers.forEach(({ tg_chat_id }) => {
-                bot.sendMessage(
-                  tg_chat_id,
-                  `🔻️🔻️Liquifity for ${freshPool.poolName} is ${freshPool.usdLiquidity} 🔻️🔻️`
-                );
-              });
-            }
-          }
+        const filteredUsers = users.filter(({ pools }) => {
+          return pools.includes(pool);
         });
-        oldPools = freshPools;
-      }, 20000);
-    };
 
-    const checkVaults = () => {
-      setInterval(async () => {
-        let users = await User.find();
-        await axios
-          .get(
-            `https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${etherscanKey}`
-          )
-          .then(async (data) => {
-
-            for (let i = 0; i < supportedPools.length; i++) {
-              let oldPool = oldPools.data.results.find(
-                ({ exchange }) => exchange === supportedPools[i]
+        if (
+          Math.abs(freshPool.usdLiquidity - oldPool.usdLiquidity) /
+            oldPool.usdLiquidity >=
+          0.05
+        ) {
+          //
+          if (freshPool.usdLiquidity - oldPool.usdLiquidity > 0) {
+            filteredUsers.forEach(({ tg_chat_id }) => {
+              bot.sendMessage(
+                tg_chat_id,
+                `🚀🚀Liquifity for ${freshPool.poolName} is ${freshPool.usdLiquidity} 🚀🚀`
               );
+              oldPools = freshPools;
+            });
+          }
+          if (freshPool.usdLiquidity - oldPool.usdLiquidity < 0) {
+            filteredUsers.forEach(({ tg_chat_id }) => {
+              bot.sendMessage(
+                tg_chat_id,
+                `🔻️🔻️Liquifity for ${freshPool.poolName} is ${freshPool.usdLiquidity} 🔻️🔻️`
+              );
+              oldPools = freshPools;
+            });
+          }
+        }
+      });
+    });
 
-              const filteredUsers = users.filter((user) => {
-                return user.pools.includes(supportedPools[i]);
-              });
+    cron.schedule("10 * * * * *", async () => {
+      let users = await User.find();
+      await axios
+        .get(
+          `https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${etherscanKey}`
+        )
+        .then(async (data) => {
+          for (let i = 0; i < supportedPools.length; i++) {
+            let oldPool = oldPools.data.results.find(
+              ({ exchange }) => exchange === supportedPools[i]
+            );
 
-              for (let j = 0; j < oldPool.assets.length; j++) {
-                let tokenFromCourseList = tokensCourse.find(
+            const filteredUsers = users.filter((user) => {
+              return user.pools.includes(supportedPools[i]);
+            });
+
+            for (let j = 0; j < oldPool.assets.length; j++) {
+              let tokenFromCourseList = tokensCourse.find(
+                (el) => el[0] === oldPool.assets[j].address
+              );
+              let newAssetUsd;
+              if (tokenFromCourseList) {
+                tokenIndex = tokensCourse.findIndex(
                   (el) => el[0] === oldPool.assets[j].address
                 );
-                let newAssetUsd;
-                if (tokenFromCourseList) {
 
-                    tokenIndex = tokensCourse.findIndex(el => el[0] === oldPool.assets[j].address)
-
-                    if(oldPool.assets[j].address === "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
-                        if ((Math.abs(tokenFromCourseList[1] - data.data.result.ethusd)/tokenFromCourseList[1]) > 0.000001) {
-                            if ((tokenFromCourseList[1] - data.data.result.ethusd) > 0) {
-
-                                filteredUsers.forEach(({ tg_chat_id }) => {
-                                    console.log(`🔻️🔻️ ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}`)
-                                  bot.sendMessage(
-                                    tg_chat_id,
-                                    `🔻️🔻️ ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}`
-                                  );
-                                  tokensCourse[tokenIndex][1] = data.data.result.ethusd
-                                });
-                            } else {
-                                filteredUsers.forEach(({ tg_chat_id }) => {
-                                    console.log(`🚀🚀 ${oldPool.assets[j].symbol} is ${data.data.result.ethusd} $`)
-                                  bot.sendMessage(
-                                    tg_chat_id,
-                                    `🚀🚀 ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}$`
-                                  );
-                                  tokensCourse[tokenIndex][1] = data.data.result.ethusd
-                                });
-                            }
-                        }
+                if (
+                  oldPool.assets[j].address ===
+                  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+                ) {
+                  if (
+                    Math.abs(tokenFromCourseList[1] - data.data.result.ethusd) /
+                      tokenFromCourseList[1] >
+                    change
+                  ) {
+                    if (tokenFromCourseList[1] - data.data.result.ethusd > 0) {
+                      filteredUsers.forEach(({ tg_chat_id }) => {
+                        console.log(
+                          `🔻️🔻️ ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}$`
+                        );
+                        bot.sendMessage(
+                          tg_chat_id,
+                          `🔻️🔻️ ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}$`
+                        );
+                        tokensCourse[tokenIndex][1] = data.data.result.ethusd;
+                      });
                     } else {
+                      filteredUsers.forEach(({ tg_chat_id }) => {
+                        console.log(
+                          `🚀🚀 ${oldPool.assets[j].symbol} is ${data.data.result.ethusd} $`
+                        );
+                        bot.sendMessage(
+                          tg_chat_id,
+                          `🚀🚀 ${oldPool.assets[j].symbol} is ${data.data.result.ethusd}$`
+                        );
+                        tokensCourse[tokenIndex][1] = data.data.result.ethusd;
+                      });
+                    }
+                  }
+                } else {
                   const freshAssetToken = new Token(
                     ChainId.MAINNET,
                     oldPool.assets[j].address,
@@ -475,56 +502,55 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
                   if (
                     Math.abs(tokenFromCourseList[1] - freshAssetUsd) /
                       tokenFromCourseList[1] >
-                    0.000001
+                    change
                   ) {
                     if (tokenFromCourseList[1] - freshAssetUsd > 0) {
-
                       filteredUsers.forEach(({ tg_chat_id }) => {
-                          console.log(`🔻️🔻️ ${oldPool.assets[j].symbol} is ${freshAssetUsd}`)
+                        console.log(
+                          `🔻️🔻️ ${oldPool.assets[j].symbol} is ${freshAssetUsd}$`
+                        );
                         bot.sendMessage(
                           tg_chat_id,
-                          `🔻️🔻️ ${oldPool.assets[j].symbol} is ${freshAssetUsd}`
+                          `🔻️🔻️ ${oldPool.assets[j].symbol} is ${freshAssetUsd}$`
                         );
-                        tokensCourse[tokenIndex][1] = freshAssetUsd
+                        tokensCourse[tokenIndex][1] = freshAssetUsd;
                       });
                     } else {
-
                       filteredUsers.forEach(({ tg_chat_id }) => {
-                          console.log(`🚀🚀 ${oldPool.assets[j].symbol} is ${freshAssetUsd}`)
+                        console.log(
+                          `🚀🚀 ${oldPool.assets[j].symbol} is ${freshAssetUsd}$`
+                        );
                         bot.sendMessage(
                           tg_chat_id,
-                          `🚀🚀 ${oldPool.assets[j].symbol} is ${freshAssetUsd}`
+                          `🚀🚀 ${oldPool.assets[j].symbol} is ${freshAssetUsd}$`
                         );
-                        tokensCourse[tokenIndex][1] = freshAssetUsd
+                        tokensCourse[tokenIndex][1] = freshAssetUsd;
                       });
                     }
                   }
                 }
-                } else {
-                  const newAssetToken = new Token(
-                    ChainId.MAINNET,
-                    oldPool.assets[j].address,
-                    18
-                  );
-                  const newAssetPair = await Fetcher.fetchPairData(
-                    newAssetToken,
-                    WETH[newAssetToken.chainId]
-                  );
-                  const newAssetRoute = new Route(
-                    [newAssetPair],
-                    WETH[newAssetToken.chainId]
-                  );
+              } else {
+                const newAssetToken = new Token(
+                  ChainId.MAINNET,
+                  oldPool.assets[j].address,
+                  18
+                );
+                const newAssetPair = await Fetcher.fetchPairData(
+                  newAssetToken,
+                  WETH[newAssetToken.chainId]
+                );
+                const newAssetRoute = new Route(
+                  [newAssetPair],
+                  WETH[newAssetToken.chainId]
+                );
 
-                    newAssetUsd =
-                    data.data.result.ethusd /
-                    newAssetRoute.midPrice.toSignificant(6);
-                }
-                tokensCourse.push([oldPool.assets[j].address, newAssetUsd]);
+                newAssetUsd =
+                  data.data.result.ethusd /
+                  newAssetRoute.midPrice.toSignificant(6);
               }
+              tokensCourse.push([oldPool.assets[j].address, newAssetUsd]);
             }
-          });
-      }, 10000);
-    };
-    checkVaults();
-    checkPoolsLiquidities();
+          }
+        });
+    });
   });
