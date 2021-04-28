@@ -9,7 +9,7 @@ const fs = require("fs");
 const cron = require("node-cron");
 
 const dataBuffer = fs.readFileSync("ethTokens.json");
-const change = 0.000001;
+const change = 0.05;
 let supportedPools;
 
 const readPools = () => {
@@ -200,41 +200,10 @@ axios
         });
     });
 
-    bot.onText(/\/coin (.+)/, (msg, [source, address]) => {
+    bot.onText(/\/coin (.+)/, async (msg, [source, symbol]) => {
       const id = msg.chat.id;
-
-      axios
-        .get(
-          `https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${etherscanKey}`
-        )
-        .then(async (data) => {
-          switch (address) {
-            case "0x6b175474e89094c44da98b954eedeac495271d0f": // Dai
-              const daiInfo = await getCoinInfo("Dai");
-              const dai = new Token(ChainId.MAINNET, address, 18);
-              const daiPair = await Fetcher.fetchPairData(
-                dai,
-                WETH[dai.chainId]
-              );
-              const daiRoute = new Route([daiPair], WETH[dai.chainId]);
-              const daiUsd =
-                data.data.result.ethusd / daiRoute.midPrice.toSignificant(6);
-              bot.sendMessage(
-                id,
-                `DAI is ${daiUsd}$; hour change is ${daiInfo[0].quote.USD.percent_change_1h}%`
-              );
-              break;
-            case "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": // Weth
-              const wethInfo = await getCoinInfo("Ethereum");
-              bot.sendMessage(
-                id,
-                `WETH is ${data.data.result.ethusd}$; hour change is ${wethInfo[0].quote.USD.percent_change_1h}%`
-              );
-              break;
-            default:
-              bot.sendMessage(id, `Sorry. I don't work with such coins`);
-          }
-        });
+        const coinData = await getCoinPricesAndSpreads(symbol);
+        bot.sendMessage(id, coinData);
     });
 
     bot.onText(/\/getPools (.+)/, async (msg, [source, address]) => {
@@ -254,16 +223,6 @@ axios
       const gas = await getGas();
       bot.sendMessage(id, gas);
     });
-
-    const getCoinInfo = async (coinName) => {
-      const coinResp = await axios.get(
-        "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
-        { headers: { "X-CMC_PRO_API_KEY": coinmarketcapKey } }
-      );
-
-      coinInfo = coinResp.data.data.filter((coin) => coin.name === coinName);
-      return coinInfo.flat();
-    };
 
     const getFunding = async () => {
       const fundingResp = await axios.get(
@@ -375,6 +334,24 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
         return [];
       }
     };
+
+    const getCoinPricesAndSpreads = async (symb) => {
+        let message = '';
+        const coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
+        const coinFromList = coinsListResp.data.find(({ symbol }) => symb.toLowerCase() === symbol.toLowerCase());
+        if (!coinFromList) {
+            return 'No coin with this symbol';
+        }
+
+        const coinDataResp = await axios.get(`https://api.coingecko.com/api/v3/coins/${coinFromList.id}`);
+
+        if(coinDataResp.data.tickers.length > 25) {
+            coinDataResp.data.tickers = coinDataResp.data.tickers.slice(0, 16)
+        }
+
+        coinDataResp.data.tickers.forEach(({ market, bid_ask_spread_percentage, converted_last }) => message += `${market.name}: price=${converted_last.usd}$; spread=${bid_ask_spread_percentage? bid_ask_spread_percentage: 0 }%\n`);
+        return message;
+    } 
 
     cron.schedule("20 * * * * *", async () => {
       const freshPools = await axios.get(
