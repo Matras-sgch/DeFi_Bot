@@ -600,7 +600,7 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
         });
     });
 
-    cron.schedule("5 * * * * *", async () => {
+    cron.schedule("15 * * * * *", async () => {
         let users = await User.find();
         const coinsListResp = await axios.get(
             "https://api.coingecko.com/api/v3/coins/list?include_platform=true"
@@ -624,10 +624,12 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
                         if (previousSpreadsValuesArray[k][1] - newPlatformSpread.bid_ask_spread_percentage > 0) {
                             bot.sendMessage(users[i].tg_chat_id, `🔻️🔻️ Spread for ${coinFromList.symbol}: 🔻️🔻️ to ${newPlatformSpread.bid_ask_spread_percentage}% from ${previousSpreadsValuesArray[k][1]}% at ${previousSpreadsValuesArray[k][0]} platform.`);
                             users[i].previousSpreadsValues[j][previousSpreadsValuesArray[k][0]] = newPlatformSpread.bid_ask_spread_percentage;
+                            users[i].markModified("previousSpreadsValues");
                             await users[i].save()
                         } else {
                             bot.sendMessage(users[i].tg_chat_id, `🚀🚀 Spread for ${coinFromList.symbol}: 🚀🚀 to ${newPlatformSpread.bid_ask_spread_percentage}% from ${previousSpreadsValuesArray[k][1]}% at ${previousSpreadsValuesArray[k][0]} platform.`);
                             users[i].previousSpreadsValues[j][previousSpreadsValuesArray[k][0]] = newPlatformSpread.bid_ask_spread_percentage;
+                            users[i].markModified("previousSpreadsValues");
                             await users[i].save()
                         }
                     }
