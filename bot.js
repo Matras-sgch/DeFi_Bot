@@ -11,6 +11,13 @@ const cron = require("node-cron");
 const dataBuffer = fs.readFileSync("ethTokens.json");
 const change = 0.05;
 let supportedPools;
+let supportedPlatforms;
+
+const readPlatforms = () => {
+  const platformsBuffer = fs.readFileSync("platforms.json");
+  const platformsJSON = platformsBuffer.toString();
+  supportedPlatforms = JSON.parse(platformsJSON);
+};
 
 const readPools = () => {
   const poolsBuffer = fs.readFileSync("pools.json");
@@ -19,6 +26,9 @@ const readPools = () => {
   supportedPools = supportedPools.map((pool) => pool.exchange);
 };
 
+
+
+readPlatforms()
 readPools();
 
 const poolsApiKey = process.env.POOLS_API_KEY;
@@ -26,6 +36,8 @@ const coinmarketcapKey = process.env.COINMARKETCAP_KEY;
 const etherscanKey = process.env.ETHERSCAN_KEY;
 const botToken = process.env.BOT_TOKEN;
 const bot = new TelegramBot(botToken, { polling: true });
+
+
 
 const chainId = ChainId.MAINNET;
 
@@ -98,6 +110,28 @@ axios
       }
     });
 
+    bot.onText(
+      /\/setSpreadChange (.+)/,
+      async (msg, [source, newSpreadChange]) => {
+        const id = msg.chat.id;
+
+        const spreadChangeTemplate = /^[0-9]*[.,]?[0-9]+$/;
+
+        if (spreadChangeTemplate.test(newSpreadChange)) {
+          const user = await User.findOne({ tg_chat_id: id });
+          if (!user) {
+            bot.sendMessage(id, "Who are you? Send /start command!");
+          } else {
+            user.spreadChange = newSpreadChange;
+            await user.save();
+            bot.sendMessage(id, "Updated!");
+          }
+        } else {
+          bot.sendMessage(id, "invalid value");
+        }
+      }
+    );
+
     bot.onText(/\/addCoin (.+)/, async (msg, [source, address]) => {
       const id = msg.chat.id;
 
@@ -108,10 +142,34 @@ axios
         if (!user) {
           bot.sendMessage(id, "Who are you? Send /start command!");
         } else {
-          const coin = user.coins.filter((coin) => coin === address);
-          if (coin.length === 0) {
+          const coin = user.coins.find((coin) => coin === address);
+          if (!coin) {
             user.coins.push(address);
+
+            const coinIndex = user.coins.findIndex((coin) => coin === address)
+            user.previousSpreadsValues.push({})
+
+            const coinsListResp = await axios.get(
+                "https://api.coingecko.com/api/v3/coins/list?include_platform=true");
+            const coinFromList = coinsListResp.data.find(({ platforms }) => platforms.ethereum === address.toLowerCase());
+
+        
+              const coinDataResp = await axios.get(
+                `https://api.coingecko.com/api/v3/coins/${coinFromList.id}`
+              );
+
+            supportedPlatforms.forEach(platform => {
+                const platformSpread = coinDataResp.data.tickers.find(({market}) => platform === market.identifier);
+                if(!platformSpread) {
+                    return
+                }
+                user.previousSpreadsValues[coinIndex][platform] = platformSpread.bid_ask_spread_percentage;
+            })
+
+              
+
             await user.save();
+
             bot.sendMessage(id, "Coin added! You track this coin.");
           } else {
             bot.sendMessage(id, "You track this coin.");
@@ -202,8 +260,8 @@ axios
 
     bot.onText(/\/coin (.+)/, async (msg, [source, symbol]) => {
       const id = msg.chat.id;
-        const coinData = await getCoinPricesAndSpreads(symbol);
-        bot.sendMessage(id, coinData);
+      const coinData = await getCoinPricesAndSpreads(symbol);
+      bot.sendMessage(id, coinData);
     });
 
     bot.onText(/\/getPools (.+)/, async (msg, [source, address]) => {
@@ -336,22 +394,33 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
     };
 
     const getCoinPricesAndSpreads = async (symb) => {
-        let message = '';
-        const coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
-        const coinFromList = coinsListResp.data.find(({ symbol }) => symb.toLowerCase() === symbol.toLowerCase());
-        if (!coinFromList) {
-            return 'No coin with this symbol';
-        }
+      let message = "";
+      const coinsListResp = await axios.get(
+        "https://api.coingecko.com/api/v3/coins/list"
+      );
+      const coinFromList = coinsListResp.data.find(
+        ({ symbol }) => symb.toLowerCase() === symbol.toLowerCase()
+      );
+      if (!coinFromList) {
+        return "No coin with this symbol";
+      }
 
-        const coinDataResp = await axios.get(`https://api.coingecko.com/api/v3/coins/${coinFromList.id}`);
+      const coinDataResp = await axios.get(
+        `https://api.coingecko.com/api/v3/coins/${coinFromList.id}`
+      );
 
-        if(coinDataResp.data.tickers.length > 25) {
-            coinDataResp.data.tickers = coinDataResp.data.tickers.slice(0, 16)
-        }
+      if (coinDataResp.data.tickers.length > 25) {
+        coinDataResp.data.tickers = coinDataResp.data.tickers.slice(0, 16);
+      }
 
-        coinDataResp.data.tickers.forEach(({ market, bid_ask_spread_percentage, converted_last }) => message += `${market.name}: price=${converted_last.usd}$; spread=${bid_ask_spread_percentage? bid_ask_spread_percentage: 0 }%\n`);
-        return message;
-    } 
+      coinDataResp.data.tickers.forEach(
+        ({ market, bid_ask_spread_percentage, converted_last }) =>
+          (message += `${market.name}: price=${converted_last.usd}$; spread=${
+            bid_ask_spread_percentage ? bid_ask_spread_percentage : 0
+          }%\n`)
+      );
+      return message;
+    };
 
     cron.schedule("20 * * * * *", async () => {
       const freshPools = await axios.get(
@@ -529,5 +598,41 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
             }
           }
         });
+    });
+
+    cron.schedule("5 * * * * *", async () => {
+        let users = await User.find();
+        const coinsListResp = await axios.get(
+            "https://api.coingecko.com/api/v3/coins/list?include_platform=true"
+          );
+
+        for(let i = 0; i < users.length; i++ ){
+            for(let j = 0; j < users[i].previousSpreadsValues.length; j++) {
+                
+                const coinFromList = coinsListResp.data.find(({ platforms }) => platforms.ethereum === users[i].coins[j].toLowerCase());
+                const coinDataResp = await axios.get(
+                    `https://api.coingecko.com/api/v3/coins/${coinFromList.id}`
+                  );
+
+                const previousSpreadsValuesArray = Object.entries(users[i].previousSpreadsValues[j]);
+                for(let k = 0; k < previousSpreadsValuesArray.length; k++) {
+                    const newPlatformSpread = coinDataResp.data.tickers.find(({ market }) => previousSpreadsValuesArray[k][0] === market.identifier)
+                    if(!newPlatformSpread) {
+                        return
+                    }
+                    if (Math.abs(previousSpreadsValuesArray[k][1] - newPlatformSpread.bid_ask_spread_percentage) >= users[i].spreadChange) {
+                        if (previousSpreadsValuesArray[k][1] - newPlatformSpread.bid_ask_spread_percentage > 0) {
+                            bot.sendMessage(users[i].tg_chat_id, `🔻️🔻️ Spread for ${coinFromList.symbol}: 🔻️🔻️ to ${newPlatformSpread.bid_ask_spread_percentage}% from ${previousSpreadsValuesArray[k][1]}% at ${previousSpreadsValuesArray[k][0]} platform.`);
+                            users[i].previousSpreadsValues[j][previousSpreadsValuesArray[k][0]] = newPlatformSpread.bid_ask_spread_percentage;
+                            await users[i].save()
+                        } else {
+                            bot.sendMessage(users[i].tg_chat_id, `🚀🚀 Spread for ${coinFromList.symbol}: 🚀🚀 to ${newPlatformSpread.bid_ask_spread_percentage}% from ${previousSpreadsValuesArray[k][1]}% at ${previousSpreadsValuesArray[k][0]} platform.`);
+                            users[i].previousSpreadsValues[j][previousSpreadsValuesArray[k][0]] = newPlatformSpread.bid_ask_spread_percentage;
+                            await users[i].save()
+                        }
+                    }
+                }
+            }
+        }
     });
   });

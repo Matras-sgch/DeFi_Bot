@@ -12,6 +12,14 @@ const userSchema = new mongoose.Schema({
     },
     pools: {
         type: [String]
+    },
+    spreadChange: {
+        type: Number,
+        default: 5
+    },
+    previousSpreadsValues: {
+        type: [Object],
+        default: []
     }
 }, {
     timestamps: true
