@@ -146,8 +146,10 @@ axios
           if (!coin) {
             user.coins.push(address);
 
-            const coinIndex = user.coins.findIndex((coin) => coin === address)
-            user.previousSpreadsValues.push({})
+            const coinIndex = user.coins.findIndex((coin) => coin === address);
+            user.previousSpreadsValues.push({});
+            user.previousPlatformSpreadValues.push({});
+            user.platformSpread.push(5);
 
             const coinsListResp = await axios.get(
                 "https://api.coingecko.com/api/v3/coins/list?include_platform=true");
@@ -163,6 +165,7 @@ axios
                 if(!platformSpread) {
                     return
                 }
+                user.previousPlatformSpreadValues[coinIndex][platform] = platformSpread.converted_last.usd;
                 user.previousSpreadsValues[coinIndex][platform] = platformSpread.bid_ask_spread_percentage;
             })
 
@@ -178,6 +181,27 @@ axios
       } else {
         bot.sendMessage(id, "Coin addres is invalid.");
       }
+    });
+
+    bot.onText(/\/editCoin (.+)/, async (msg, [source, addressPercentage]) => {
+        const id = msg.chat.id;
+        const user = await User.findOne({ tg_chat_id: id });
+        const percentageTemplate = /^[0-9]*[.,]?[0-9]+$/;
+
+        if (!user) {
+            bot.sendMessage(id, "Who are you? Send /start command!");
+        } else {
+            const [address, percentage] = addressPercentage.split(' ');
+            const coinIndex = user.coins.findIndex(coin => coin === address);
+            if (coinIndex > -1 && percentageTemplate.test(percentage)) {
+                user.platformSpread[coinIndex] = parseFloat(percentage)
+                user.markModified("platformSpread");
+                await user.save();
+                bot.sendMessage(id, "Coin updated!");
+            } else {
+                bot.sendMessage(id, "Invalid address or percentage");
+            }
+        }
     });
 
     bot.onText(/\/rmPool (.+)/, async (msg, [source, address]) => {
@@ -633,6 +657,49 @@ Low - ${gasResp.data.result.SafeGasPrice}`;
                             await users[i].save()
                         }
                     }
+                }
+            }
+        }
+    });
+
+    cron.schedule("3 * * * * *", async () => {
+        let users = await User.find();
+        const coinsListResp = await axios.get(
+            "https://api.coingecko.com/api/v3/coins/list?include_platform=true"
+          );
+
+        for(let i = 0; i < users.length; i++ ){
+            for(let j = 0; j < users[i].coins.length; j++) {
+                const previousPlatformSpreadValuesArray = Object.entries(users[i].previousPlatformSpreadValues[j]);
+                const previousUniswapCost = users[i].previousPlatformSpreadValues[j].uniswap;
+
+                
+                const coinFromList = coinsListResp.data.find(({ platforms }) => platforms.ethereum === users[i].coins[j].toLowerCase());
+                const coinDataResp = await axios.get(
+                    `https://api.coingecko.com/api/v3/coins/${coinFromList.id}`
+                  );
+                const uniswapMarket = coinDataResp.data.tickers.find(({ market }) => market.identifier === "uniswap");
+
+                for(let k = 0; k < previousPlatformSpreadValuesArray.length; k++) {
+
+                    if (!(previousPlatformSpreadValuesArray[k][0] === 'uniswap')) {
+
+                        const newPlatformSpread = coinDataResp.data.tickers.find(({ market }) => previousPlatformSpreadValuesArray[k][0] === market.identifier)
+
+                        if (!(!newPlatformSpread || (previousPlatformSpreadValuesArray[k][1] === newPlatformSpread.converted_last.usd && previousUniswapCost === uniswapMarket.converted_last.usd))) {
+
+                            if(((Math.abs(uniswapMarket.converted_last.usd - newPlatformSpread.converted_last.usd)/uniswapMarket.converted_last.usd) * 100) >= users[i].platformSpread[j]) {
+                                users[i].previousPlatformSpreadValues[j][previousPlatformSpreadValuesArray[k][0]] = newPlatformSpread.converted_last.usd;
+                                users[i].previousPlatformSpreadValues[j].uniswap = uniswapMarket.converted_last.usd;
+
+                                users[i].markModified("previousPlatformSpreadValues");
+                                await users[i].save();
+                                bot.sendMessage(users[i].tg_chat_id, `❗️❗️${coinDataResp.data.symbol}: ${uniswapMarket.market.identifier} (${uniswapMarket.converted_last.usd}$) ➡️ ${newPlatformSpread.market.identifier} (${newPlatformSpread.converted_last.usd}$) ❗️❗️ \n spread: ${Math.abs(uniswapMarket.converted_last.usd - newPlatformSpread.converted_last.usd)}$`);
+                            }
+                        }
+                        
+                    }
+                    
                 }
             }
         }

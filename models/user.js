@@ -20,6 +20,14 @@ const userSchema = new mongoose.Schema({
     previousSpreadsValues: {
         type: [Object],
         default: []
+    },
+    platformSpread: {
+        type: [Number],
+        default: []
+    },
+    previousPlatformSpreadValues: {
+        type: [Object],
+        default: []
     }
 }, {
     timestamps: true
