@@ -1,4 +1,4 @@
-[
+export const SUPPORTED_PLATFORMS: string[] = [
     "uniswap",
     "gate",
     "sushiswap",
