@@ -139,7 +139,7 @@ export class PoolService implements IPoolService {
     public async comparePools(): Promise<void> {
         cron.schedule("10 * * * * *", async () => {
 
-            console.log('from compare pools')
+            
             const ethPriceKey: string = this.configService.get<string>('ETHERSCAN_KEY');
             const ethPrice: any = await this.requestService.get(this.ETH_PRICE_API_URL + `&apikey=` + ethPriceKey);
             const coinList: any = await this.requestService.get(this.COINlIST_DATA_API_URL);
