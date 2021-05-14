@@ -85,10 +85,10 @@ export class SpreadService implements ISpreadService {
 
     public async compareSpreads(): Promise<void> {
         cron.schedule("5 * * * * *", async () => {
-            console.log('from compare spreads')
+          
 
             const coinList: any = await this.requestService.get(this.COINlIST_DATA_API_URL);
-            console.log('after request')
+            
 
             const spreads: Array<ISpread> = await Spread.find();
 
