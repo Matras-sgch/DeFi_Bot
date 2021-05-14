@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SUPPORTED_PLATFORMS = void 0;
+exports.SUPPORTED_PLATFORMS = [
+    "uniswap",
+    "gate",
+    "sushiswap",
+    "bithumb",
+    "bibox",
+    "ftx_spot",
+    "ftx_us",
+    "bitrue",
+    "hotbit"
+];
+//# sourceMappingURL=platform.service.constants.js.map
