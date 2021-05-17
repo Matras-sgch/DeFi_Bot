@@ -60,12 +60,13 @@ var spread_model_1 = require("../../models/spread/spread.model");
 var user_model_1 = require("../../models/user/user.model");
 var cron = __importStar(require("node-cron"));
 var SpreadService = /** @class */ (function () {
-    function SpreadService(configService, requestService, platformService, userService, botService) {
+    function SpreadService(configService, requestService, platformService, userService, botService, loggerService) {
         this.configService = configService;
         this.requestService = requestService;
         this.platformService = platformService;
         this.userService = userService;
         this.botService = botService;
+        this.loggerService = loggerService;
         this.COINlIST_DATA_API_URL = "https://api.coingecko.com/api/v3/coins/list?include_platform=true";
         this.COIN_DATA_API_URL = "https://api.coingecko.com/api/v3/coins/";
     }
@@ -185,16 +186,15 @@ var SpreadService = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
-                cron.schedule("5 * * * * *", function () { return __awaiter(_this, void 0, void 0, function () {
+                cron.schedule("6 * * * * *", function () { return __awaiter(_this, void 0, void 0, function () {
                     var coinList, spreads, _loop_2, this_1, i;
                     return __generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
-                                console.log('from compare spreads');
+                                this.loggerService.log('compare spreads');
                                 return [4 /*yield*/, this.requestService.get(this.COINlIST_DATA_API_URL)];
                             case 1:
                                 coinList = _a.sent();
-                                console.log('after request');
                                 return [4 /*yield*/, spread_model_1.Spread.find()];
                             case 2:
                                 spreads = _a.sent();
@@ -203,11 +203,11 @@ var SpreadService = /** @class */ (function () {
                                     return __generator(this, function (_b) {
                                         switch (_b.label) {
                                             case 0:
-                                                if (!!(spreads[i].platform === "uniswap")) return [3 /*break*/, 6];
+                                                if (!!(spreads[i].platform === "uniswap_v2")) return [3 /*break*/, 6];
                                                 return [4 /*yield*/, spread_model_1.Spread.findOne({
                                                         owner: spreads[i].owner,
                                                         coinAddress: spreads[i].coinAddress,
-                                                        platform: "uniswap"
+                                                        platform: "uniswap_v2"
                                                     })];
                                             case 1:
                                                 uniswapSpread = _b.sent();
@@ -224,7 +224,7 @@ var SpreadService = /** @class */ (function () {
                                                 });
                                                 uniswapMarket = coinData.data.tickers.find(function (_a) {
                                                     var market = _a.market;
-                                                    return market.identifier === "uniswap";
+                                                    return market.identifier === "uniswap_v2";
                                                 });
                                                 if (!!(!platformMarket || (spreads[i].coinUsdValue === platformMarket.converted_last.usd && uniswapSpread.coinUsdValue === uniswapMarket.converted_last.usd))) return [3 /*break*/, 6];
                                                 if (!(((Math.abs(uniswapMarket.converted_last.usd - platformMarket.converted_last.usd) / uniswapMarket.converted_last.usd) * 100) >= spreads[i].spreadChange)) return [3 /*break*/, 6];

@@ -9,6 +9,7 @@ import { Pool } from "../../models/pool/pool.model";
 import {IBotService} from "../BotService/bot.service";
 import {User} from "../../models/user/user.model";
 import * as cron from "node-cron";
+import {ILoggerService} from "../LoggerService/logger.service";
 
 
 export interface IPoolService {
@@ -28,6 +29,7 @@ export class PoolService implements IPoolService {
         private readonly requestService: IRequestService,
         private readonly userService: IUserService,
         private readonly botService: IBotService,
+        private readonly loggerService: ILoggerService,
     ) {}
 
     public async getPoolAssets(): Promise<unknown[]> {
@@ -139,7 +141,7 @@ export class PoolService implements IPoolService {
     public async comparePools(): Promise<void> {
         cron.schedule("10 * * * * *", async () => {
 
-            console.log('from compare pools')
+            this.loggerService.log('compare pools')
             const ethPriceKey: string = this.configService.get<string>('ETHERSCAN_KEY');
             const ethPrice: any = await this.requestService.get(this.ETH_PRICE_API_URL + `&apikey=` + ethPriceKey);
             const coinList: any = await this.requestService.get(this.COINlIST_DATA_API_URL);

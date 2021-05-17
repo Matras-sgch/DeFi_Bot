@@ -1,5 +1,5 @@
 export const SUPPORTED_PLATFORMS: string[] = [
-    "uniswap",
+    "uniswap_v2",
     "gate",
     "sushiswap",
     "bithumb",

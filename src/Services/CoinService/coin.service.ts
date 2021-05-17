@@ -51,7 +51,7 @@ export class CoinService implements ICoinService {
 
         let res: ICoinInfo[] = [];
         coinsData.forEach(coin => {
-            const uniswapMarket = coin.tickers.findIndex(({ market }) => market.identifier === "uniswap");
+            const uniswapMarket = coin.tickers.findIndex(({ market }) => market.identifier === "uniswap_v2");
             res.push({ name: coin.symbol, usdLiquidity: coin.tickers[uniswapMarket].converted_last.usd, ethLiquidity: coin.tickers[uniswapMarket].converted_last.eth, coinAddress: coin.platforms.ethereum })
         })
 
@@ -71,7 +71,7 @@ export class CoinService implements ICoinService {
 
         const coinData: any = await this.requestService.get(this.COIN_DATA_API_URL+coinFromList.id);
 
-        const uniswapMarket = coinData.data.tickers.findIndex(({ market }) => market.identifier === "uniswap");
+        const uniswapMarket = coinData.data.tickers.findIndex(({ market }) => market.identifier === "uniswap_v2");
 
         return {
             name: coinData.data.symbol,

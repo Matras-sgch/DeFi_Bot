@@ -93,7 +93,7 @@ var CoinService = /** @class */ (function () {
                         coinsData.forEach(function (coin) {
                             var uniswapMarket = coin.tickers.findIndex(function (_a) {
                                 var market = _a.market;
-                                return market.identifier === "uniswap";
+                                return market.identifier === "uniswap_v2";
                             });
                             res.push({ name: coin.symbol, usdLiquidity: coin.tickers[uniswapMarket].converted_last.usd, ethLiquidity: coin.tickers[uniswapMarket].converted_last.eth, coinAddress: coin.platforms.ethereum });
                         });
@@ -131,7 +131,7 @@ var CoinService = /** @class */ (function () {
                         coinData = _a.sent();
                         uniswapMarket = coinData.data.tickers.findIndex(function (_a) {
                             var market = _a.market;
-                            return market.identifier === "uniswap";
+                            return market.identifier === "uniswap_v2";
                         });
                         return [2 /*return*/, {
                                 name: coinData.data.symbol,

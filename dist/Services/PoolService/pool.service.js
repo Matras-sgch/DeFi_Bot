@@ -62,11 +62,12 @@ var pool_model_1 = require("../../models/pool/pool.model");
 var user_model_1 = require("../../models/user/user.model");
 var cron = __importStar(require("node-cron"));
 var PoolService = /** @class */ (function () {
-    function PoolService(configService, requestService, userService, botService) {
+    function PoolService(configService, requestService, userService, botService, loggerService) {
         this.configService = configService;
         this.requestService = requestService;
         this.userService = userService;
         this.botService = botService;
+        this.loggerService = loggerService;
         this.POOL_DATA_API_URL = "https://data-api.defipulse.com/api/v1/blocklytics/pools/v1/exchanges";
         this.ETH_PRICE_API_URL = "https://api.etherscan.io/api?module=stats&action=ethprice";
         this.COINlIST_DATA_API_URL = "https://api.coingecko.com/api/v3/coins/list?include_platform=true";
@@ -223,7 +224,7 @@ var PoolService = /** @class */ (function () {
                     return __generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
-                                console.log('from compare pools');
+                                this.loggerService.log('compare pools');
                                 ethPriceKey = this.configService.get('ETHERSCAN_KEY');
                                 return [4 /*yield*/, this.requestService.get(this.ETH_PRICE_API_URL + "&apikey=" + ethPriceKey)];
                             case 1:

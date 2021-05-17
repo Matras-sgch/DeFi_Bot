@@ -21,8 +21,8 @@ import {ISpreadService, SpreadService} from "./Services/spreadService/spread.ser
     const platformService: IPlatformService = new PlatformService();
     const botService: IBotService = new BotService(configService);
     const userService: IUserService = new UserService();
-    const spreadService: ISpreadService = new SpreadService(configService, requestService, platformService, userService, botService);
-    const poolService: IPoolService = new PoolService(configService, requestService, userService, botService);
+    const spreadService: ISpreadService = new SpreadService(configService, requestService, platformService, userService, botService, loggerService);
+    const poolService: IPoolService = new PoolService(configService, requestService, userService, botService, loggerService);
     const coinService: ICoinService = new CoinService(configService, requestService, userService, spreadService);
 
     const botTaskService: IBotTaskService = new BotTaskService(botService, coinService, userService, spreadService, poolService, databaseService, requestService, configService);
