@@ -52,7 +52,7 @@ export class CoinService implements ICoinService {
         let res: ICoinInfo[] = [];
         coinsData.forEach(coin => {
             const uniswapMarket = coin.tickers.findIndex(({ market }) => market.identifier === "uniswap_v2");
-            res.push({ name: coin.symbol, usdLiquidity: coin.tickers[uniswapMarket].converted_last.usd, ethLiquidity: coin.tickers[uniswapMarket].converted_last.eth, coinAddress: coin.platforms.ethereum })
+            res.push({ name: coin.symbol, usdLiquidity: this.formatFloatToReadableString(coin.tickers[uniswapMarket].converted_last.usd), ethLiquidity: this.formatFloatToReadableString(coin.tickers[uniswapMarket].converted_last.eth), coinAddress: coin.platforms.ethereum })
         })
 
         return res;
@@ -103,5 +103,15 @@ export class CoinService implements ICoinService {
 
         await newCoin.save();
         return newCoin;
+    }
+
+    private formatFloatToReadableString (value: number): string {
+        const stringValue = value.toString();
+        if(stringValue.includes('e')) {
+
+            const arrValue = stringValue.split('e-');
+            const result = `0.${'0'.repeat(+arrValue[1]-arrValue[0].length)}${arrValue[0]}`;
+            return result;
+        } else return stringValue
     }
 }

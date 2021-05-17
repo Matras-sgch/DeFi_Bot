@@ -50,6 +50,7 @@ var CoinService = /** @class */ (function () {
     CoinService.prototype.get = function (tgUserId) {
         return __awaiter(this, void 0, void 0, function () {
             var user, coins, coinList, coinsFromList, coinsData, i, coinData, res;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.userService.getUserByTgId(tgUserId)];
@@ -95,7 +96,7 @@ var CoinService = /** @class */ (function () {
                                 var market = _a.market;
                                 return market.identifier === "uniswap_v2";
                             });
-                            res.push({ name: coin.symbol, usdLiquidity: coin.tickers[uniswapMarket].converted_last.usd, ethLiquidity: coin.tickers[uniswapMarket].converted_last.eth, coinAddress: coin.platforms.ethereum });
+                            res.push({ name: coin.symbol, usdLiquidity: _this.formatFloatToReadableString(coin.tickers[uniswapMarket].converted_last.usd), ethLiquidity: _this.formatFloatToReadableString(coin.tickers[uniswapMarket].converted_last.eth), coinAddress: coin.platforms.ethereum });
                         });
                         return [2 /*return*/, res];
                 }
@@ -181,6 +182,16 @@ var CoinService = /** @class */ (function () {
                 }
             });
         });
+    };
+    CoinService.prototype.formatFloatToReadableString = function (value) {
+        var stringValue = value.toString();
+        if (stringValue.includes('e')) {
+            var arrValue = stringValue.split('e-');
+            var result = "0." + '0'.repeat(+arrValue[1] - arrValue[0].length) + arrValue[0];
+            return result;
+        }
+        else
+            return stringValue;
     };
     return CoinService;
 }());

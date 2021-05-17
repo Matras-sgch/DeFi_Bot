@@ -1,7 +1,7 @@
 export interface ICoinInfo {
     name: string;
-    usdLiquidity: number;
-    ethLiquidity: number;
+    usdLiquidity: string;
+    ethLiquidity: string;
     coinAddress: string;
 }
 
