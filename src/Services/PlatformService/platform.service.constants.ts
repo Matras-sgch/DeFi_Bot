@@ -4,8 +4,7 @@ export const SUPPORTED_PLATFORMS: string[] = [
     "sushiswap",
     "bithumb",
     "bibox",
-    "ftx_spot",
-    "ftx_us",
+    "ftx",
     "bitrue",
     "hotbit"
 ]

@@ -146,7 +146,7 @@ var CoinService = /** @class */ (function () {
     };
     CoinService.prototype.add = function (tgUserId, address, spreadChange) {
         return __awaiter(this, void 0, void 0, function () {
-            var addressTemplate, percentageTemplate, user, coin, newCoin, spreads;
+            var addressTemplate, percentageTemplate, user, coin, newCoin, coinList, coinFromList, coinData, spreads;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -170,13 +170,28 @@ var CoinService = /** @class */ (function () {
                             coinAddress: address,
                             owner: user._id,
                         });
-                        return [4 /*yield*/, this.spreadService.addSpreads(user.tg_chat_id, address, parseFloat(spreadChange))];
+                        return [4 /*yield*/, this.requestService.get(this.COINlIST_DATA_API_URL)];
                     case 3:
+                        coinList = _a.sent();
+                        coinFromList = coinList.data.find(function (_a) {
+                            var platforms = _a.platforms;
+                            return platforms.ethereum === address.toLowerCase();
+                        });
+                        if (!coinFromList)
+                            return [2 /*return*/, null];
+                        return [4 /*yield*/, this.requestService.get(this.COIN_DATA_API_URL + coinFromList.id)];
+                    case 4:
+                        coinData = _a.sent();
+                        if (coinData.data.market_data.current_price.usd < 0.000001) {
+                            return [2 /*return*/, null];
+                        }
+                        return [4 /*yield*/, this.spreadService.addSpreads(user.tg_chat_id, address, parseFloat(spreadChange))];
+                    case 5:
                         spreads = _a.sent();
                         if (!spreads)
                             return [2 /*return*/, null];
                         return [4 /*yield*/, newCoin.save()];
-                    case 4:
+                    case 6:
                         _a.sent();
                         return [2 /*return*/, newCoin];
                 }

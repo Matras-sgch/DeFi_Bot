@@ -26,12 +26,12 @@ var spreadSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    platform: {
+    coinSymbol: {
         type: String,
         required: true,
     },
-    spreadValue: {
-        type: Number,
+    platform: {
+        type: String,
         required: true,
     },
     spreadChange: {

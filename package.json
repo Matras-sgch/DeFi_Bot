@@ -5,15 +5,19 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "dev": "nodemon dist/main.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sushiswap/sushi-data": "^1.0.24",
     "@types/node-telegram-bot-api": "^0.51.1",
     "@uniswap/sdk": "^3.0.3",
     "axios": "^0.21.1",
+    "bithumb": "^1.1.2",
+    "ccxt": "^1.50.12",
     "dotenv": "^8.2.0",
     "ethers": "^5.1.0",
     "mongoose": "^5.12.7",

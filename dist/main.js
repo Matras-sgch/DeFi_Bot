@@ -48,7 +48,7 @@ var request_service_1 = require("./Services/RequestService/request.service");
 var user_service_1 = require("./Services/UserService/user.service");
 var spread_service_1 = require("./Services/spreadService/spread.service");
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var configService, loggerService, requestService, databaseService, platformService, botService, userService, spreadService, poolService, coinService, botTaskService, poolAssets;
+    var configService, loggerService, requestService, databaseService, platformService, botService, userService, spreadService, poolService, coinService, botTaskService;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -66,10 +66,8 @@ var spread_service_1 = require("./Services/spreadService/spread.service");
                 poolService = new pool_service_1.PoolService(configService, requestService, userService, botService, loggerService);
                 coinService = new coin_service_1.CoinService(configService, requestService, userService, spreadService);
                 botTaskService = new bot_task_service_1.BotTaskService(botService, coinService, userService, spreadService, poolService, databaseService, requestService, configService);
-                return [4 /*yield*/, poolService.getPoolAssets()];
-            case 2:
-                poolAssets = _a.sent();
-                loggerService.log(poolAssets);
+                // const poolAssets: unknown[] = await poolService.getPoolAssets();
+                // loggerService.log(poolAssets);
                 botService.onText(/\/start/, function (msg) { return __awaiter(void 0, void 0, void 0, function () {
                     var id, user;
                     return __generator(this, function (_a) {
@@ -103,7 +101,7 @@ var spread_service_1 = require("./Services/spreadService/spread.service");
                             case 1:
                                 coin = _b.sent();
                                 if (!!coin) return [3 /*break*/, 3];
-                                return [4 /*yield*/, botService.sendMessage(id, 'problem with adding coin. Maybe: send /start command; wrong coin address; wrong spread persentage; you track this coin.')];
+                                return [4 /*yield*/, botService.sendMessage(id, "problem with adding coin. Maybe: send /start command; wrong coin address; wrong spread persentage; you track this coin; we don't support this coin.")];
                             case 2:
                                 _b.sent();
                                 return [3 /*break*/, 5];
@@ -268,7 +266,6 @@ var spread_service_1 = require("./Services/spreadService/spread.service");
                     });
                 }); });
                 spreadService.compareSpreads();
-                poolService.comparePools();
                 return [2 /*return*/];
         }
     });

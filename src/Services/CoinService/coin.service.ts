@@ -10,7 +10,7 @@ import {ISpreadService} from "../spreadService/spread.service";
 export interface ICoinService {
     get(tgUserId: string): Promise<Array<ICoinInfo>>;
     add(tgUserId: string, address: string, spreadChange: string): Promise<ICoin | null>;
-    getCoinByAddress(tgUserId: string, address: string): Promise<ICoinInfo>
+    getCoinByAddress(tgUserId: string, address: string): Promise<ICoinInfo>;
 }
 
 
@@ -97,6 +97,16 @@ export class CoinService implements ICoinService {
             owner: user._id,
         });
 
+        const coinList: any =await this.requestService.get(this.COINlIST_DATA_API_URL);
+        const coinFromList = coinList.data.find(
+            ({ platforms }) => platforms.ethereum === address.toLowerCase()
+        );
+        if (!coinFromList) return null;
+
+        const coinData: any = await this.requestService.get(this.COIN_DATA_API_URL+coinFromList.id);
+        if (coinData.data.market_data.current_price.usd < 0.000001) {
+            return null
+        }
 
         const spreads = await this.spreadService.addSpreads(user.tg_chat_id, address, parseFloat(spreadChange));
         if (!spreads) return null;

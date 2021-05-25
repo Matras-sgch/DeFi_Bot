@@ -7,12 +7,12 @@ const spreadSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    coinSymbol: {
+        type: String,
+        required: true,
+    },
     platform: {
         type: String,
-        required:true,
-    },
-    spreadValue: {
-        type: Number,
         required:true,
     },
     spreadChange: {

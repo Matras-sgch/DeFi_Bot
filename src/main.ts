@@ -27,8 +27,8 @@ import {ISpreadService, SpreadService} from "./Services/spreadService/spread.ser
 
     const botTaskService: IBotTaskService = new BotTaskService(botService, coinService, userService, spreadService, poolService, databaseService, requestService, configService);
 
-    const poolAssets: unknown[] = await poolService.getPoolAssets();
-    loggerService.log(poolAssets);
+    // const poolAssets: unknown[] = await poolService.getPoolAssets();
+    // loggerService.log(poolAssets);
 
     botService.onText(/\/start/, async (msg) => {
         const id = msg.chat.id;
@@ -47,7 +47,7 @@ import {ISpreadService, SpreadService} from "./Services/spreadService/spread.ser
         const coin = await coinService.add(id.toString(), address, spreadChange);
 
         if (!coin) {
-            await botService.sendMessage(id, 'problem with adding coin. Maybe: send /start command; wrong coin address; wrong spread persentage; you track this coin.')
+            await botService.sendMessage(id, `problem with adding coin. Maybe: send /start command; wrong coin address; wrong spread persentage; you track this coin; we don't support this coin.`)
         } else {
             await botService.sendMessage(id, 'The coin was added!')
         }
@@ -134,6 +134,6 @@ import {ISpreadService, SpreadService} from "./Services/spreadService/spread.ser
     });
 
     spreadService.compareSpreads();
-    poolService.comparePools();
+    // poolService.comparePools();
 
 })();

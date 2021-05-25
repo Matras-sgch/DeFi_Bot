@@ -7,8 +7,7 @@ exports.SUPPORTED_PLATFORMS = [
     "sushiswap",
     "bithumb",
     "bibox",
-    "ftx_spot",
-    "ftx_us",
+    "ftx",
     "bitrue",
     "hotbit"
 ];
