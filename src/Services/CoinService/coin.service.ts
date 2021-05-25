@@ -104,9 +104,9 @@ export class CoinService implements ICoinService {
         if (!coinFromList) return null;
 
         const coinData: any = await this.requestService.get(this.COIN_DATA_API_URL+coinFromList.id);
-        if (coinData.data.market_data.current_price.usd < 0.000001) {
-            return null
-        }
+        // if (coinData.data.market_data.current_price.usd < 0.000001) {
+        //     return null
+        // }
 
         const spreads = await this.spreadService.addSpreads(user.tg_chat_id, address, parseFloat(spreadChange));
         if (!spreads) return null;

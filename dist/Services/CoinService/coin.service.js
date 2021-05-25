@@ -182,9 +182,6 @@ var CoinService = /** @class */ (function () {
                         return [4 /*yield*/, this.requestService.get(this.COIN_DATA_API_URL + coinFromList.id)];
                     case 4:
                         coinData = _a.sent();
-                        if (coinData.data.market_data.current_price.usd < 0.000001) {
-                            return [2 /*return*/, null];
-                        }
                         return [4 /*yield*/, this.spreadService.addSpreads(user.tg_chat_id, address, parseFloat(spreadChange))];
                     case 5:
                         spreads = _a.sent();
