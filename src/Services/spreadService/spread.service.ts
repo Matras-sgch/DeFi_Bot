@@ -93,7 +93,14 @@ export class SpreadService implements ISpreadService {
                         }
                         break;
                     case 'sushiswap':
-                        const sushiSwapTokenData = await sushidata.exchange.token({token_address: coinAddress})
+                        console.log('sushi')
+                        let sushiSwapTokenData: any;
+                        try {
+                            sushiSwapTokenData = await sushidata.exchange.token({token_address: coinAddress})
+                        } catch(e) {
+                            this.loggerService.log(e)
+                        }
+                        console.log('after getting data')
                         if (sushiSwapTokenData) {
                             const sushiswapCoinUsd: number = sushiSwapTokenData.volumeUSD/sushiSwapTokenData.volume;
                             const sushiswapSpread: ISpread = new Spread({

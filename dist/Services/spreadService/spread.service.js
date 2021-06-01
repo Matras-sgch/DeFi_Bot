@@ -84,7 +84,7 @@ var SpreadService = /** @class */ (function () {
     }
     SpreadService.prototype.addSpreads = function (tgUserId, coinAddress, spreadChange) {
         return __awaiter(this, void 0, void 0, function () {
-            var user, coinsList, supportedPlatforms, coinFromList, coinData, spreads, i, oldSpread, _a, uniswapSpread, gatePairs, coinUsdtPair, gatePareInfo, gateSpread, sushiSwapTokenData, sushiswapCoinUsd, sushiswapSpread, bithumb, bithumbTokens, bithumbCoinUsd, bithumbSpread, biboxTokenData, biboxCoinUsd, biboxSpread, ftx, ftxTokens, ftxCoin, ftxCoinUsd, ftxSpread, hotbitToken, hotbitCoinUsd, hotbitSpread;
+            var user, coinsList, supportedPlatforms, coinFromList, coinData, spreads, i, oldSpread, _a, uniswapSpread, gatePairs, coinUsdtPair, gatePareInfo, gateSpread, sushiSwapTokenData, e_1, sushiswapCoinUsd, sushiswapSpread, bithumb, bithumbTokens, bithumbCoinUsd, bithumbSpread, biboxTokenData, biboxCoinUsd, biboxSpread, ftx, ftxTokens, ftxCoin, ftxCoinUsd, ftxSpread, hotbitToken, hotbitCoinUsd, hotbitSpread;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.userService.getUserByTgId(tgUserId)];
@@ -107,7 +107,7 @@ var SpreadService = /** @class */ (function () {
                         i = 0;
                         _b.label = 4;
                     case 4:
-                        if (!(i < supportedPlatforms.length)) return [3 /*break*/, 34];
+                        if (!(i < supportedPlatforms.length)) return [3 /*break*/, 37];
                         return [4 /*yield*/, spread_model_1.Spread.findOne({
                                 coinAddress: coinAddress,
                                 platform: supportedPlatforms[i],
@@ -115,18 +115,18 @@ var SpreadService = /** @class */ (function () {
                             })];
                     case 5:
                         oldSpread = _b.sent();
-                        if (!!oldSpread) return [3 /*break*/, 33];
+                        if (!!oldSpread) return [3 /*break*/, 36];
                         _a = supportedPlatforms[i];
                         switch (_a) {
                             case 'uniswap_v2': return [3 /*break*/, 6];
                             case 'gate': return [3 /*break*/, 8];
                             case 'sushiswap': return [3 /*break*/, 13];
-                            case 'bithumb': return [3 /*break*/, 17];
-                            case 'bibox': return [3 /*break*/, 21];
-                            case 'ftx': return [3 /*break*/, 25];
-                            case 'hotbit': return [3 /*break*/, 29];
+                            case 'bithumb': return [3 /*break*/, 20];
+                            case 'bibox': return [3 /*break*/, 24];
+                            case 'ftx': return [3 /*break*/, 28];
+                            case 'hotbit': return [3 /*break*/, 32];
                         }
-                        return [3 /*break*/, 33];
+                        return [3 /*break*/, 36];
                     case 6:
                         uniswapSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
@@ -140,7 +140,7 @@ var SpreadService = /** @class */ (function () {
                         return [4 /*yield*/, uniswapSpread.save()];
                     case 7:
                         _b.sent();
-                        return [3 /*break*/, 33];
+                        return [3 /*break*/, 36];
                     case 8: return [4 /*yield*/, this.requestService.get(this.GATE_PAIRS_DATA_API_URL)];
                     case 9:
                         gatePairs = _b.sent();
@@ -163,11 +163,24 @@ var SpreadService = /** @class */ (function () {
                     case 11:
                         _b.sent();
                         _b.label = 12;
-                    case 12: return [3 /*break*/, 33];
-                    case 13: return [4 /*yield*/, sushi_data_1.default.exchange.token({ token_address: coinAddress })];
+                    case 12: return [3 /*break*/, 36];
+                    case 13:
+                        console.log('sushi');
+                        sushiSwapTokenData = void 0;
+                        _b.label = 14;
                     case 14:
+                        _b.trys.push([14, 16, , 17]);
+                        return [4 /*yield*/, sushi_data_1.default.exchange.token({ token_address: coinAddress })];
+                    case 15:
                         sushiSwapTokenData = _b.sent();
-                        if (!sushiSwapTokenData) return [3 /*break*/, 16];
+                        return [3 /*break*/, 17];
+                    case 16:
+                        e_1 = _b.sent();
+                        this.loggerService.log(e_1);
+                        return [3 /*break*/, 17];
+                    case 17:
+                        console.log('after getting data');
+                        if (!sushiSwapTokenData) return [3 /*break*/, 19];
                         sushiswapCoinUsd = sushiSwapTokenData.volumeUSD / sushiSwapTokenData.volume;
                         sushiswapSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
@@ -179,16 +192,16 @@ var SpreadService = /** @class */ (function () {
                         });
                         spreads.push(sushiswapSpread);
                         return [4 /*yield*/, sushiswapSpread.save()];
-                    case 15:
+                    case 18:
                         _b.sent();
-                        _b.label = 16;
-                    case 16: return [3 /*break*/, 33];
-                    case 17:
+                        _b.label = 19;
+                    case 19: return [3 /*break*/, 36];
+                    case 20:
                         bithumb = new ccxt.bithumb;
                         return [4 /*yield*/, bithumb.publicGetTickerAll()];
-                    case 18:
+                    case 21:
                         bithumbTokens = _b.sent();
-                        if (!bithumbTokens.data[coinData.data.symbol.toUpperCase()]) return [3 /*break*/, 20];
+                        if (!bithumbTokens.data[coinData.data.symbol.toUpperCase()]) return [3 /*break*/, 23];
                         bithumbCoinUsd = bithumbTokens.data[coinData.data.symbol.toUpperCase()].prev_closing_price * 0.001;
                         bithumbSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
@@ -200,16 +213,16 @@ var SpreadService = /** @class */ (function () {
                         });
                         spreads.push(bithumbSpread);
                         return [4 /*yield*/, bithumbSpread.save()];
-                    case 19:
-                        _b.sent();
-                        _b.label = 20;
-                    case 20: return [3 /*break*/, 33];
-                    case 21: return [4 /*yield*/, this.requestService.get(this.BIBOX_PAIR_DATA_API_URL + coinData.data.symbol.toUpperCase() + "_USDT")];
                     case 22:
+                        _b.sent();
+                        _b.label = 23;
+                    case 23: return [3 /*break*/, 36];
+                    case 24: return [4 /*yield*/, this.requestService.get(this.BIBOX_PAIR_DATA_API_URL + coinData.data.symbol.toUpperCase() + "_USDT")];
+                    case 25:
                         biboxTokenData = _b.sent();
-                        if (!biboxTokenData.data.result) return [3 /*break*/, 24];
+                        if (!biboxTokenData.data.result) return [3 /*break*/, 27];
                         biboxCoinUsd = biboxTokenData.data.result.last_usd;
-                        if (!biboxCoinUsd) return [3 /*break*/, 24];
+                        if (!biboxCoinUsd) return [3 /*break*/, 27];
                         biboxSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
                             coinSymbol: coinData.data.symbol,
@@ -220,20 +233,20 @@ var SpreadService = /** @class */ (function () {
                         });
                         spreads.push(biboxSpread);
                         return [4 /*yield*/, biboxSpread.save()];
-                    case 23:
+                    case 26:
                         _b.sent();
-                        _b.label = 24;
-                    case 24: return [3 /*break*/, 33];
-                    case 25:
+                        _b.label = 27;
+                    case 27: return [3 /*break*/, 36];
+                    case 28:
                         ftx = new ccxt.ftx;
                         return [4 /*yield*/, ftx.publicGetMarkets()];
-                    case 26:
+                    case 29:
                         ftxTokens = _b.sent();
                         ftxCoin = ftxTokens.result.find(function (_a) {
                             var name = _a.name;
                             return name.includes(coinData.data.symbol.toUpperCase());
                         });
-                        if (!ftxCoin) return [3 /*break*/, 28];
+                        if (!ftxCoin) return [3 /*break*/, 31];
                         ftxCoinUsd = ftxCoin.last;
                         ftxSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
@@ -245,15 +258,15 @@ var SpreadService = /** @class */ (function () {
                         });
                         spreads.push(ftxSpread);
                         return [4 /*yield*/, ftxSpread.save()];
-                    case 27:
-                        _b.sent();
-                        _b.label = 28;
-                    case 28: return [3 /*break*/, 33];
-                    case 29: return [4 /*yield*/, this.requestService.get("" + this.HOTBIT_MARKET_DATA_API_URL + coinData.data.symbol.toUpperCase() + "/USDT")];
                     case 30:
+                        _b.sent();
+                        _b.label = 31;
+                    case 31: return [3 /*break*/, 36];
+                    case 32: return [4 /*yield*/, this.requestService.get("" + this.HOTBIT_MARKET_DATA_API_URL + coinData.data.symbol.toUpperCase() + "/USDT")];
+                    case 33:
                         hotbitToken = _b.sent();
                         hotbitCoinUsd = hotbitToken.data.result;
-                        if (!hotbitCoinUsd) return [3 /*break*/, 32];
+                        if (!hotbitCoinUsd) return [3 /*break*/, 35];
                         hotbitSpread = new spread_model_1.Spread({
                             coinAddress: coinAddress,
                             coinSymbol: coinData.data.symbol,
@@ -264,14 +277,14 @@ var SpreadService = /** @class */ (function () {
                         });
                         spreads.push(hotbitSpread);
                         return [4 /*yield*/, hotbitSpread.save()];
-                    case 31:
+                    case 34:
                         _b.sent();
-                        _b.label = 32;
-                    case 32: return [3 /*break*/, 33];
-                    case 33:
+                        _b.label = 35;
+                    case 35: return [3 /*break*/, 36];
+                    case 36:
                         i++;
                         return [3 /*break*/, 4];
-                    case 34: return [2 /*return*/, spreads];
+                    case 37: return [2 /*return*/, spreads];
                 }
             });
         });
